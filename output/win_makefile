@@ -1,0 +1,49 @@
+all: main.exe
+
+clean:
+    del *.obj /s
+    del *.exe /s
+    del sourcefiles.txt
+
+brianlib\randomkit\randomkit.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  brianlib/randomkit/randomkit.c /Fobrianlib\randomkit\randomkit.obj 
+    
+code_objects\neurongroup_group_variable_set_conditional_codeobject.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  code_objects/neurongroup_group_variable_set_conditional_codeobject.cpp /Focode_objects\neurongroup_group_variable_set_conditional_codeobject.obj 
+    
+code_objects\neurongroup_group_variable_set_conditional_codeobject_1.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  code_objects/neurongroup_group_variable_set_conditional_codeobject_1.cpp /Focode_objects\neurongroup_group_variable_set_conditional_codeobject_1.obj 
+    
+code_objects\neurongroup_resetter_codeobject.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  code_objects/neurongroup_resetter_codeobject.cpp /Focode_objects\neurongroup_resetter_codeobject.obj 
+    
+code_objects\neurongroup_run_regularly_codeobject.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  code_objects/neurongroup_run_regularly_codeobject.cpp /Focode_objects\neurongroup_run_regularly_codeobject.obj 
+    
+code_objects\neurongroup_stateupdater_codeobject.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  code_objects/neurongroup_stateupdater_codeobject.cpp /Focode_objects\neurongroup_stateupdater_codeobject.obj 
+    
+code_objects\neurongroup_thresholder_codeobject.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  code_objects/neurongroup_thresholder_codeobject.cpp /Focode_objects\neurongroup_thresholder_codeobject.obj 
+    
+code_objects\spikemonitor_codeobject.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  code_objects/spikemonitor_codeobject.cpp /Focode_objects\spikemonitor_codeobject.obj 
+    
+main.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  main.cpp /Fomain.obj 
+    
+network.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  network.cpp /Fonetwork.obj 
+    
+objects.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  objects.cpp /Foobjects.obj 
+    
+run.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  run.cpp /Forun.obj 
+    
+synapses_classes.obj: win_makefile
+    cl /c /EHsc /I. -DVIDEO_WIDTH=720 -DVIDEO_HEIGHT=528 -Ibrianlib/randomkit -IC:\Users\hi\anaconda3\Library\include /Ox /w  /MP  synapses_classes.cpp /Fosynapses_classes.obj 
+    
+
+main.exe: brianlib\randomkit\randomkit.obj code_objects\neurongroup_group_variable_set_conditional_codeobject.obj code_objects\neurongroup_group_variable_set_conditional_codeobject_1.obj code_objects\neurongroup_resetter_codeobject.obj code_objects\neurongroup_run_regularly_codeobject.obj code_objects\neurongroup_stateupdater_codeobject.obj code_objects\neurongroup_thresholder_codeobject.obj code_objects\spikemonitor_codeobject.obj main.obj network.obj objects.obj run.obj synapses_classes.obj  win_makefile sourcefiles.txt
+    link @sourcefiles.txt /LIBPATH:brianlib/randomkit /LIBPATH:C:\Users\hi\anaconda3\Library\Lib advapi32.lib opencv_core.lib opencv_highgui.lib opencv_videoio.lib /LIBPATH:. /OUT:main.exe 
