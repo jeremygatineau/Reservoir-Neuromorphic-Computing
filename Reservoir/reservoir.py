@@ -10,7 +10,7 @@ class Reservoir():
         self.types = None
     def init_connection_matrix(self):
         self.types = ["ex" if np.random.rand() < 0.8 else "inh" for i in range(self.n_neurons_side**3)]
-        C = np.array([[self._init_tw(i, j) for i in range(self.M.shape[1])] for j in range(self.M.shape[0])])
+        C = np.array([[self._init_tw(i, j)*int(i!=j) for i in range(self.M.shape[1])] for j in range(self.M.shape[0])])
         self.M = np.array([[self._init_connection(i, j, C[i, j]) for i in range(self.M.shape[0])] for j in range(self.M.shape[0])])
 
     def _init_connection(self, i, j, c):
