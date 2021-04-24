@@ -51,18 +51,18 @@ class Reservoir():
                 if self.indices[i][0] == 0: # first neuron in input group
                     if self.indices[j][0] == 0: # second neuron in input group
                         II[i, j] == self.M[i, j]
-                    elif self.self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
+                    elif self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
                         IO[i, j-n-self.n_neurons_side**2]=self.M[i,j]
                     else: # second neuron in reservoir group
                         IR[i, j-self.n_neurons_side**2] = self.M[i,j]
                         
                 elif self.indices[i][0] == self.n_neurons_side-1: # first neuron in output group
-                    if self.self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
+                    if self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
                         OO[i-n-self.n_neurons_side**2, j-n-self.n_neurons_side**2]=self.M[i,j]
                 else : # first neuron in reservoir group
-                    if self.self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
+                    if self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
                         RO[i-self.n_neurons_side**2, j-n-self.n_neurons_side**2] = self.M[i,j]
-                    elif self.self.indices[j][0] > 0:
+                    elif self.indices[j][0] > 0:
                         RR[i-self.n_neurons_side**2, j-self.n_neurons_side**2] = self.M[i,j]
         return II, IR, IO, RR, RO, OO
     def set_neuron_groups(self):
