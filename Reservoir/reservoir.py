@@ -147,16 +147,13 @@ class Reservoir():
     def init_brian(self):
         self.set_neuron_groups()
         self.connect_groups()
-        br.store()
+        br.store(filename="reservoir_reset_state")
     def forward(self, image):
-        br.restore()
+        br.restore(filename="reservoir_reset_state")
         I = 1-image/(image.max())
         I = np.concatenate((I, np.zeros_like(I)), axis=0)
         self.in_ta = br.TimedArray(5*I, dt=10*br.ms)
         readOutMonitor = br.SpikeMonitor(self.output_group)
         br.run(2*I.shape[1]*10*br.ms) # run enough so that signal has time to propagate
         return readOutMonitor.i, readOutMonitor.t/br.ms
-    
-    def _get_hash(self):
-        pass
     
