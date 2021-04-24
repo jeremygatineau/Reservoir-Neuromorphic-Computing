@@ -105,7 +105,6 @@ class Reservoir():
         n1 = self.n_neurons_side**3-self.n_neurons_side**2
         n2 = self.n_neurons_side**3
         self.input_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n0)]
-        self.input_group.I = [self.input_ta() + 1 if self.types[n]=='ex' else self.input_ta() + 1 for n in range(n0)]
         self.input_group.b = [0.2 for n in range(n0)]
         self.input_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0)]
         self.input_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n0)]
