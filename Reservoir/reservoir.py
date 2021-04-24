@@ -155,7 +155,7 @@ class Reservoir():
         self.in_ta = br.TimedArray(5*I, dt=10*br.ms)
         readOutMonitor = br.SpikeMonitor(self.output_group)
         br.run(2*I.shape[1]*10*br.ms) # run enough so that signal has time to propagate
-        return readOutMonitor.i, M.t/br.ms
+        return readOutMonitor.i, readOutMonitor.t/br.ms
     
     def _get_hash(self):
         pass
