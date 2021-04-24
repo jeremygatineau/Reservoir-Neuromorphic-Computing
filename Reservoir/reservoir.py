@@ -17,6 +17,8 @@ class Reservoir():
         self.sRR = None
         self.sRO = None
         self.sOO = None
+
+        self.input_ta = None
     def init_connection_matrix(self):
         self.types = ["ex" if np.random.rand() < 0.8 else "inh" for i in range(self.n_neurons_side**3)]
         C = np.array([[self._init_tw(i, j)*int(i!=j) for i in range(self.M.shape[1])] for j in range(self.M.shape[0])])
@@ -50,15 +52,15 @@ class Reservoir():
             for j in range(self.M.shape[1]):
                 if self.indices[i][0] == 0: # first neuron in input group
                     if self.indices[j][0] == 0: # second neuron in input group
-                        II[i, j] == self.M[i, j]
+                        II[i, j] = self.M[i, j]
                     elif self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
-                        IO[i, j-n-self.n_neurons_side**2]=self.M[i,j]
+                        IO[i, j-n-self.n_neurons_side**2] = self.M[i,j]
                     else: # second neuron in reservoir group
                         IR[i, j-self.n_neurons_side**2] = self.M[i,j]
                         
                 elif self.indices[i][0] == self.n_neurons_side-1: # first neuron in output group
                     if self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
-                        OO[i-n-self.n_neurons_side**2, j-n-self.n_neurons_side**2]=self.M[i,j]
+                        OO[i-n-self.n_neurons_side**2, j-n-self.n_neurons_side**2] = self.M[i,j]
                 else : # first neuron in reservoir group
                     if self.indices[j][0] == self.n_neurons_side-1: # second neuron in output group
                         RO[i-self.n_neurons_side**2, j-n-self.n_neurons_side**2] = self.M[i,j]
@@ -70,7 +72,19 @@ class Reservoir():
         dv/dt = (0.04*v**2 + 5*v + 140 - u + I +j)/t2 : 1
         du/dt = 50*a*(b*v-u)/t2 : 1
         dj/dt = -j/tau : 1
-        I = 0 : 1
+        I : 1
+        a : 1
+        b : 1
+        d : 1
+        p : 1
+        t2 : second
+        tau : second
+        """
+        dyn_eqs = """
+        dv/dt = (0.04*v**2 + 5*v + 140 - u + I +j)/t2 : 1
+        du/dt = 50*a*(b*v-u)/t2 : 1
+        dj/dt = -j/tau : 1
+        I = 1+self.in_ta(t, i): 1
         a : 1
         b : 1
         d : 1
@@ -91,6 +105,7 @@ class Reservoir():
         n1 = self.n_neurons_side**3-self.n_neurons_side**2
         n2 = self.n_neurons_side**3
         self.input_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n0)]
+        self.input_group.I = [self.input_ta() + 1 if self.types[n]=='ex' else self.input_ta() + 1 for n in range(n0)]
         self.input_group.b = [0.2 for n in range(n0)]
         self.input_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0)]
         self.input_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n0)]
@@ -98,6 +113,7 @@ class Reservoir():
         self.input_group.p = [0.25 if self.types[n]=='ex' else -0.5 for n in range(n0)]
 
         self.reservoir_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n0, n1)]
+        self.reservoir_group.I = [np.random.rand()*5 if self.types[n]=='ex' else np.random.rand()*2 for n in range(n0, n1)]
         self.reservoir_group.b = [0.2 for n in range(n0, n1)]
         self.reservoir_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0, n1)]
         self.reservoir_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n0, n1)]
@@ -105,6 +121,7 @@ class Reservoir():
         self.reservoir_group.p = [0.25 if self.types[n]=='ex' else -0.5 for n in range(n0, n1)]
 
         self.output_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n1, n2)]
+        self.output_group.I = [np.random.rand()*5 if self.types[n]=='ex' else np.random.rand()*2 for n in range(n1, n2)]
         self.output_group.b = [0.2 for n in range(n1, n2)]
         self.output_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n1, n2)]
         self.output_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n1, n2)]
@@ -120,7 +137,7 @@ class Reservoir():
         self.sRR = br.Synapses(self.reservoir_group, self.reservoir_group, on_pre='j_post += p_pre')
         self.sRO = br.Synapses(self.reservoir_group, self.output_group, on_pre='j_post += p_pre')
         self.sOO = br.Synapses(self.output_group, self.output_group, on_pre='j_post += p_pre')
-
+    
         self.sII.connect(i=ii[0], j=ii[1])
         self.sIR.connect(i=ir[0], j=ir[1])
         self.sIO.connect(i=io[0], j=io[1])
@@ -131,14 +148,16 @@ class Reservoir():
     def init_brian(self):
         self.set_neuron_groups()
         self.connect_groups()
-
-
-    def encode_input(self):
-        pass
-    def read_out(self):
-        pass
-    def run(self):
-        pass
+        br.store()
+    def forward(self, image):
+        br.restore()
+        I = 1-image/(image.max())
+        I = np.concatenate((I, np.zeros_like(I)), axis=0)
+        self.in_ta = br.TimedArray(5*I, dt=10*br.ms)
+        readOutMonitor = br.SpikeMonitor(self.output_group)
+        br.run(2*I.shape[1]*10*br.ms) # run enough so that signal has time to propagate
+        return readOutMonitor.i, M.t/br.ms
+    
     def _get_hash(self):
         pass
     
