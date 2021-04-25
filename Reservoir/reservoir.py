@@ -111,24 +111,24 @@ class Reservoir():
         self.input_group.b = [0.2 for n in range(n0)]
         self.input_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0)]
         self.input_group.tau = [30*br.ms if self.types[n]=='ex' else 60*br.ms for n in range(n0)]
-        self.input_group.t2 = [1*br.units.second for n in range(n0)]
-        self.input_group.p = [0.25 if self.types[n]=='ex' else -0.5 for n in range(n0)]
+        self.input_group.t2 = [80*br.ms for n in range(n0)]
+        self.input_group.p = [25 if self.types[n]=='ex' else -10 for n in range(n0)]
 
         self.reservoir_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n0, n1)]
         self.reservoir_group.I = [np.random.rand()*5 if self.types[n]=='ex' else np.random.rand()*2 for n in range(n0, n1)]
         self.reservoir_group.b = [0.2 for n in range(n0, n1)]
         self.reservoir_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0, n1)]
         self.reservoir_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n0, n1)]
-        self.reservoir_group.t2 = [1*br.units.second for n in range(n0, n1)]
-        self.reservoir_group.p = [0.25 if self.types[n]=='ex' else -0.5 for n in range(n0, n1)]
+        self.reservoir_group.t2 = [80*br.ms for n in range(n0, n1)]
+        self.reservoir_group.p = [25 if self.types[n]=='ex' else -10 for n in range(n0, n1)]
 
         self.output_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n1, n2)]
         self.output_group.I = [np.random.rand()*5 if self.types[n]=='ex' else np.random.rand()*2 for n in range(n1, n2)]
         self.output_group.b = [0.2 for n in range(n1, n2)]
         self.output_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n1, n2)]
         self.output_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n1, n2)]
-        self.output_group.t2 = [1*br.units.second for n in range(n1, n2)]
-        self.output_group.p = [0.25 if self.types[n]=='ex' else -0.5 for n in range(n1, n2)]
+        self.output_group.t2 = [80*br.ms for n in range(n1, n2)]
+        self.output_group.p = [25 if self.types[n]=='ex' else -10 for n in range(n1, n2)]
 
     def connect_groups(self):
         CM = self.get_connection_matrices()
@@ -152,7 +152,7 @@ class Reservoir():
         self.connect_groups()
         
         self.SGen = br.SpikeGeneratorGroup(self.n_neurons_side**2, range(self.n_neurons_side**2), [1*br.ms for _ in range(self.n_neurons_side**2)], period=50*br.ms)
-        self.InSyn = br.Synapses(self.SGen, self.input_group, model='w : 1', on_pre='j_post += 100*w')
+        self.InSyn = br.Synapses(self.SGen, self.input_group, model='w : 1', on_pre='j_post += 25*w')
         self.InSyn.connect(j='i')
 
         self.readOutMonitor = br.SpikeMonitor(self.output_group, record=True)
@@ -168,6 +168,6 @@ class Reservoir():
         assert image.max()<=1 and image.min()>=0, "image values must be between 0 and 1"
         img = 1-image 
         self.InSyn.w = img.reshape(-1)
-        self.network.run(10000*br.ms) # run enough so that signal has time to propagate
+        self.network.run(1000*br.ms) # run enough so that signal has time to propagate
         return self.readOutMonitor.i, self.readOutMonitor.t/br.ms
     
