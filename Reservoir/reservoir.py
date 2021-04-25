@@ -11,14 +11,17 @@ class Reservoir():
         self.input_group = None
         self.output_group = None
         self.reservoir_group = None
+        self.SGen = None
+        self.InSyn = None
         self.sII = None
         self.sIR = None
         self.sIO = None
         self.sRR = None
         self.sRO = None
         self.sOO = None
+        self.network = br.Network()
+        self.readOutMonitor = None
 
-        self.input_ta = None
     def init_connection_matrix(self):
         self.types = ["ex" if np.random.rand() < 0.8 else "inh" for i in range(self.n_neurons_side**3)]
         C = np.array([[self._init_tw(i, j)*int(i!=j) for i in range(self.M.shape[1])] for j in range(self.M.shape[0])])
@@ -80,11 +83,11 @@ class Reservoir():
         t2 : second
         tau : second
         """
-        dyn_eqs = """
+        dyn_eqs_in = """
         dv/dt = (0.04*v**2 + 5*v + 140 - u + I +j)/t2 : 1
         du/dt = 50*a*(b*v-u)/t2 : 1
         dj/dt = -j/tau : 1
-        I = 1+self.in_ta(t, i): 1
+        I = 1: 1
         a : 1
         b : 1
         d : 1
@@ -97,9 +100,9 @@ class Reservoir():
         u = u + d
         """
 
-        self.input_group = br.NeuronGroup(self.n_neurons_side**2, dyn_eqs, threshold='v>30', reset=reset_eqs)
-        self.reservoir_group = br.NeuronGroup(self.n_neurons_side**3-2*self.n_neurons_side**2, dyn_eqs, threshold='v>30', reset=reset_eqs)
-        self.output_group = br.NeuronGroup(self.n_neurons_side**2, dyn_eqs, threshold='v>30', reset=reset_eqs)
+        self.input_group = br.NeuronGroup(self.n_neurons_side**2, dyn_eqs_in, threshold='v>30', reset=reset_eqs, method="euler")
+        self.reservoir_group = br.NeuronGroup(self.n_neurons_side**3-2*self.n_neurons_side**2, dyn_eqs, threshold='v>30', reset=reset_eqs, method="euler")
+        self.output_group = br.NeuronGroup(self.n_neurons_side**2, dyn_eqs, threshold='v>30', reset=reset_eqs, method="euler")
         
         n0 = self.n_neurons_side**2
         n1 = self.n_neurons_side**3-self.n_neurons_side**2
@@ -107,7 +110,7 @@ class Reservoir():
         self.input_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n0)]
         self.input_group.b = [0.2 for n in range(n0)]
         self.input_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0)]
-        self.input_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n0)]
+        self.input_group.tau = [30*br.ms if self.types[n]=='ex' else 60*br.ms for n in range(n0)]
         self.input_group.t2 = [1*br.units.second for n in range(n0)]
         self.input_group.p = [0.25 if self.types[n]=='ex' else -0.5 for n in range(n0)]
 
@@ -147,13 +150,24 @@ class Reservoir():
     def init_brian(self):
         self.set_neuron_groups()
         self.connect_groups()
-        br.store(filename="reservoir_reset_state")
+        
+        self.SGen = br.SpikeGeneratorGroup(self.n_neurons_side**2, range(self.n_neurons_side**2), [1*br.ms for _ in range(self.n_neurons_side**2)], period=50*br.ms)
+        self.InSyn = br.Synapses(self.SGen, self.input_group, model='w : 1', on_pre='j_post += 100*w')
+        self.InSyn.connect(j='i')
+
+        self.readOutMonitor = br.SpikeMonitor(self.output_group, record=True)
+        self.readInMonitor = br.SpikeMonitor(self.SGen, record=True)
+        self.stateInMonitor = br.StateMonitor(self.input_group, variables=['v', 'j', 'u'], record=True)
+        self.network.add(self.SGen, self.input_group, self.reservoir_group, self.output_group, \
+                         self.InSyn, self.sII, self.sIO, self.sIR, self.sRR, self.sRO, \
+                         self.sOO, self.readOutMonitor, self.readInMonitor, self.stateInMonitor)
+        self.network.store(filename="reservoir_reset_state")
+        
     def forward(self, image):
-        br.restore(filename="reservoir_reset_state")
-        I = 1-image/(image.max())
-        I = np.concatenate((I, np.zeros_like(I)), axis=0)
-        self.in_ta = br.TimedArray(5*I, dt=10*br.ms)
-        readOutMonitor = br.SpikeMonitor(self.output_group)
-        br.run(2*I.shape[1]*10*br.ms) # run enough so that signal has time to propagate
-        return readOutMonitor.i, readOutMonitor.t/br.ms
+        self.network.restore(filename="reservoir_reset_state")
+        assert image.max()<=1 and image.min()>=0, "image values must be between 0 and 1"
+        img = 1-image 
+        self.InSyn.w = img.reshape(-1)
+        self.network.run(10000*br.ms) # run enough so that signal has time to propagate
+        return self.readOutMonitor.i, self.readOutMonitor.t/br.ms
     
