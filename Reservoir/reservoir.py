@@ -1,9 +1,9 @@
 import brian2 as br
 import numpy as np
 class Reservoir():
-    def __init__(self, n_neurons_side=10):
+    def __init__(self, n_neurons_side=10, lbd=2):
         self.n_neurons_side=n_neurons_side
-        self.lbd = 2
+        self.lbd = lbd
         self.M = np.zeros((n_neurons_side**3, n_neurons_side**3))
         idx = np.indices((n_neurons_side, n_neurons_side, n_neurons_side))
         self.indices = np.array([[[(x__, y__, z__) for x__, y__, z__ in zip(x_, y_, z_)] for x_, y_, z_ in zip(x, y, z)] for x,y, z in zip(idx[0], idx[1], idx[2])]).reshape([-1, 3])
@@ -110,8 +110,8 @@ class Reservoir():
         self.input_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n0)]
         self.input_group.b = [0.2 for n in range(n0)]
         self.input_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0)]
-        self.input_group.tau = [30*br.ms if self.types[n]=='ex' else 60*br.ms for n in range(n0)]
-        self.input_group.t2 = [80*br.ms for n in range(n0)]
+        self.input_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n0)]
+        self.input_group.t2 = [50*br.ms for n in range(n0)]
         self.input_group.p = [25 if self.types[n]=='ex' else -10 for n in range(n0)]
 
         self.reservoir_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n0, n1)]
@@ -119,7 +119,7 @@ class Reservoir():
         self.reservoir_group.b = [0.2 for n in range(n0, n1)]
         self.reservoir_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n0, n1)]
         self.reservoir_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n0, n1)]
-        self.reservoir_group.t2 = [80*br.ms for n in range(n0, n1)]
+        self.reservoir_group.t2 = [50*br.ms for n in range(n0, n1)]
         self.reservoir_group.p = [25 if self.types[n]=='ex' else -10 for n in range(n0, n1)]
 
         self.output_group.a = [0.02 if self.types[n]=='ex' else 0.1 for n in range(n1, n2)]
@@ -127,7 +127,7 @@ class Reservoir():
         self.output_group.b = [0.2 for n in range(n1, n2)]
         self.output_group.d = [8 if self.types[n]=='ex' else 2 for n in range(n1, n2)]
         self.output_group.tau = [3*br.ms if self.types[n]=='ex' else 6*br.ms for n in range(n1, n2)]
-        self.output_group.t2 = [80*br.ms for n in range(n1, n2)]
+        self.output_group.t2 = [50*br.ms for n in range(n1, n2)]
         self.output_group.p = [25 if self.types[n]=='ex' else -10 for n in range(n1, n2)]
 
     def connect_groups(self):
@@ -152,15 +152,19 @@ class Reservoir():
         self.connect_groups()
         
         self.SGen = br.SpikeGeneratorGroup(self.n_neurons_side**2, range(self.n_neurons_side**2), [1*br.ms for _ in range(self.n_neurons_side**2)], period=50*br.ms)
-        self.InSyn = br.Synapses(self.SGen, self.input_group, model='w : 1', on_pre='j_post += 25*w')
+        self.InSyn = br.Synapses(self.SGen, self.input_group, model='w : 1', on_pre='j_post += 100*w')
         self.InSyn.connect(j='i')
 
         self.readOutMonitor = br.SpikeMonitor(self.output_group, record=True)
         self.readInMonitor = br.SpikeMonitor(self.SGen, record=True)
+        self.resSpikeMon = br.SpikeMonitor(self.reservoir_group, record=True)
+        self.inSpikeMon = br.SpikeMonitor(self.input_group, record=True)
         self.stateInMonitor = br.StateMonitor(self.input_group, variables=['v', 'j', 'u'], record=True)
+        self.stateResMonitor = br.StateMonitor(self.reservoir_group, variables=['v', 'j', 'u'], record=True)
         self.network.add(self.SGen, self.input_group, self.reservoir_group, self.output_group, \
                          self.InSyn, self.sII, self.sIO, self.sIR, self.sRR, self.sRO, \
-                         self.sOO, self.readOutMonitor, self.readInMonitor, self.stateInMonitor)
+                         self.sOO, self.readOutMonitor, self.readInMonitor, self.stateInMonitor, \
+                         self.resSpikeMon, self.stateInMonitor, self.stateResMonitor)
         self.network.store(filename="reservoir_reset_state")
         
     def forward(self, image):
@@ -168,6 +172,6 @@ class Reservoir():
         assert image.max()<=1 and image.min()>=0, "image values must be between 0 and 1"
         img = 1-image 
         self.InSyn.w = img.reshape(-1)
-        self.network.run(1000*br.ms) # run enough so that signal has time to propagate
+        self.network.run(200*br.ms) # run enough so that signal has time to propagate
         return self.readOutMonitor.i, self.readOutMonitor.t/br.ms
     
